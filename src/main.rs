@@ -18,7 +18,7 @@ fn main() -> ! {
 
     esp_println::logger::init_logger_from_env();
 
-    esp_alloc::heap_allocator!(72 * 1024);
+    //esp_alloc::heap_allocator!(72 * 1024);
 
     let delay = Delay::new();
     loop {
