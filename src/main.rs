@@ -8,6 +8,7 @@ use esp_hal::main;
 use log::info;
 
 extern crate alloc;
+mod robot;
 
 #[main]
 fn main() -> ! {
