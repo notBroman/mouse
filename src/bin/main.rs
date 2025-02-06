@@ -12,6 +12,47 @@ use log::info;
 
 extern crate alloc;
 
+pub struct Motor<'a, PWM>
+where
+    PWM: PwmPeripheral,
+{
+    mot_ctrl: McPwm<'a, PWM>,
+    mot_pin_a: operator::PwmPin<'a, PWM, u8, bool>,
+    mot_pin_b: operator::PwmPin<'a, PWM, u8, bool>,
+}
+
+impl<'a, PWM> Motor<'a, PWM>
+where
+    PWM: esp_hal::mcpwm::PwmPeripheral,
+{
+    pub fn new(
+        mut mcpwm: McPwm<'a, PWM>,
+        clk_cfg: PeripheralClockConfig,
+        mot_r1: Output,
+        mot_r2: Output,
+    ) -> Self {
+        // set the operator for the pwm
+        let mut mot_ra = mcpwm
+            .operator0
+            .with_pin_a(mot_r1, operator::PwmPinConfig::UP_ACTIVE_HIGH);
+
+        let mut mot_rb = mcpwm
+            .operator1
+            .with_pin_a(mot_r2, operator::PwmPinConfig::UP_ACTIVE_HIGH);
+
+        // set timer0 for the pwm & start it
+        let timer_clock_cfg = clk_cfg
+            .timer_clock_with_frequency(99, timer::PwmWorkingMode::Increase, 20.kHz())
+            .unwrap();
+        mcpwm.timer0.start(timer_clock_cfg);
+        Self {
+            mot_ctrl: mcpwm,
+            mot_pin_a: mot_ra,
+            mot_pin_b: mot_rb,
+        }
+    }
+}
+
 #[main]
 fn main() -> ! {
     // generator version: 0.2.2
@@ -33,21 +74,6 @@ fn main() -> ! {
     // clock for motors
     let clk_cfg = PeripheralClockConfig::with_frequency(32.MHz()).unwrap();
     let mut mot_ctrl = McPwm::new(peripherals.MCPWM0, clk_cfg);
-
-    // set the operator for the pwm
-    let mut mot_ra = mot_ctrl
-        .operator0
-        .with_pin_a(mot_r1, operator::PwmPinConfig::UP_ACTIVE_HIGH);
-
-    let mut mot_rb = mot_ctrl
-        .operator1
-        .with_pin_a(mot_r2, operator::PwmPinConfig::UP_ACTIVE_HIGH);
-
-    // set timer0 for the pwm & start it
-    let timer_clock_cfg = clk_cfg
-        .timer_clock_with_frequency(99, timer::PwmWorkingMode::Increase, 20.kHz())
-        .unwrap();
-    mot_ctrl.timer0.start(timer_clock_cfg);
 
     // config the timers
     mot_ra.set_timestamp(70);
