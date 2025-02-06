@@ -4,49 +4,28 @@
 use esp_backtrace as _;
 use esp_hal::clock::CpuClock;
 use esp_hal::delay::Delay;
-use esp_hal::gpio::{Level, Output};
+use esp_hal::gpio::{Level, Output, OutputPin};
 use esp_hal::main;
 use esp_hal::mcpwm::*;
+use esp_hal::peripheral::Peripheral;
 use esp_hal::time::RateExtU32;
 use log::info;
 
 extern crate alloc;
 
-pub struct Motor<PWM>
-where
-    PWM: PwmPeripheral,
-{
-    mot_ctrl: McPwm<'static, PWM>,
-    mot_pin_a: operator::PwmPin<'static, PWM, 0, true>,
-    mot_pin_b: operator::PwmPin<'static, PWM, 1, true>,
+pub struct Motor<'d, PWM> {
+    mot_ctrl: McPwm<'d, PWM>,
+    mot_p1: operator::PwmPin<'d, PWM, 0, true>,
+    mot_p2: operator::PwmPin<'d, PWM, 1, true>,
 }
 
-impl Motor {
+impl<'d, PWM: PwmPeripheral> Motor<'d, PWM> {
     pub fn new(
-        mut mcpwm: McPwm<'a, PWM>,
-        clk_cfg: PeripheralClockConfig,
-        mot_r1: Output<'static>,
-        mot_r2: Output<'static>,
+        pwm_peripheral: impl Peripheral<P = PWM> + 'd,
+        mot_pin_1: impl Peripheral<P = impl OutputPin> + 'd,
+        mot_pin_2: impl Peripheral<P = impl OutputPin> + 'd,
     ) -> Self {
-        // set the operator for the pwm
-        let mut mot_ra = mcpwm
-            .operator0
-            .with_pin_a(mot_r1, operator::PwmPinConfig::UP_ACTIVE_HIGH);
-
-        let mut mot_rb = mcpwm
-            .operator1
-            .with_pin_a(mot_r2, operator::PwmPinConfig::UP_ACTIVE_HIGH);
-
-        // set timer0 for the pwm & start it
-        let timer_clock_cfg = clk_cfg
-            .timer_clock_with_frequency(99, timer::PwmWorkingMode::Increase, 20.kHz())
-            .unwrap();
-        mcpwm.timer0.start(timer_clock_cfg);
-        Self {
-            mot_ctrl: mcpwm,
-            mot_pin_a: mot_ra,
-            mot_pin_b: mot_rb,
-        }
+        todo!();
     }
 }
 
@@ -71,6 +50,21 @@ fn main() -> ! {
     // clock for motors
     let clk_cfg = PeripheralClockConfig::with_frequency(32.MHz()).unwrap();
     let mut mot_ctrl = McPwm::new(peripherals.MCPWM0, clk_cfg);
+
+    // set the operator for the pwm
+    let mut mot_ra = mcpwm
+        .operator0
+        .with_pin_a(mot_r1, operator::PwmPinConfig::UP_ACTIVE_HIGH);
+
+    let mut mot_rb = mcpwm
+        .operator1
+        .with_pin_a(mot_r2, operator::PwmPinConfig::UP_ACTIVE_HIGH);
+
+    // set timer0 for the pwm & start it
+    let timer_clock_cfg = clk_cfg
+        .timer_clock_with_frequency(99, timer::PwmWorkingMode::Increase, 20.kHz())
+        .unwrap();
+    mcpwm.timer0.start(timer_clock_cfg);
 
     let delay = Delay::new();
     loop {
