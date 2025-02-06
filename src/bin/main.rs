@@ -12,24 +12,21 @@ use log::info;
 
 extern crate alloc;
 
-pub struct Motor<'a, PWM>
+pub struct Motor<PWM>
 where
     PWM: PwmPeripheral,
 {
-    mot_ctrl: McPwm<'a, PWM>,
-    mot_pin_a: operator::PwmPin<'a, PWM, u8, bool>,
-    mot_pin_b: operator::PwmPin<'a, PWM, u8, bool>,
+    mot_ctrl: McPwm<'static, PWM>,
+    mot_pin_a: operator::PwmPin<'static, PWM, 0, true>,
+    mot_pin_b: operator::PwmPin<'static, PWM, 1, true>,
 }
 
-impl<'a, PWM> Motor<'a, PWM>
-where
-    PWM: esp_hal::mcpwm::PwmPeripheral,
-{
+impl Motor {
     pub fn new(
         mut mcpwm: McPwm<'a, PWM>,
         clk_cfg: PeripheralClockConfig,
-        mot_r1: Output,
-        mot_r2: Output,
+        mot_r1: Output<'static>,
+        mot_r2: Output<'static>,
     ) -> Self {
         // set the operator for the pwm
         let mut mot_ra = mcpwm
@@ -74,10 +71,6 @@ fn main() -> ! {
     // clock for motors
     let clk_cfg = PeripheralClockConfig::with_frequency(32.MHz()).unwrap();
     let mut mot_ctrl = McPwm::new(peripherals.MCPWM0, clk_cfg);
-
-    // config the timers
-    mot_ra.set_timestamp(70);
-    mot_rb.set_timestamp(0);
 
     let delay = Delay::new();
     loop {
