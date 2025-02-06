@@ -14,42 +14,33 @@ use log::info;
 extern crate alloc;
 
 pub struct Motor<'d, PWM> {
-    mot_ctrl: McPwm<'d, PWM>,
     mot_p1: operator::PwmPin<'d, PWM, 0, true>,
     mot_p2: operator::PwmPin<'d, PWM, 1, true>,
 }
 
 impl<'d, PWM: PwmPeripheral> Motor<'d, PWM> {
     pub fn new(
-        pwm_peripheral: impl Peripheral<P = PWM> + 'd,
-        mot_pin_1: impl Peripheral<P = impl OutputPin> + 'd,
-        mot_pin_2: impl Peripheral<P = impl OutputPin> + 'd,
-        clk_cfg: PeripheralClockConfig,
+        mut mot_pin_1: operator::PwmPin<'d, PWM, 0, true>,
+        mut mot_pin_2: operator::PwmPin<'d, PWM, 1, true>,
     ) -> Self {
-        // intatiate the PWM Peripheral
-        let mut mc = McPwm::new(pwm_peripheral, clk_cfg);
-
-        // set the pins to the operaters
-        let mut mot_out_1 = Output::new(mot_pin_1, Level::Low);
-        let mut mot_ra = mc
-            .operator0
-            .with_pin_a(mot_out_1, operator::PwmPinConfig::UP_ACTIVE_HIGH);
-
-        let mut mot_out_2 = Output::new(mot_pin_2, Level::Low);
-        let mut mot_rb = mc
-            .operator1
-            .with_pin_a(mot_out_2, operator::PwmPinConfig::UP_ACTIVE_HIGH);
-
-        let timer_clock_cfg = clk_cfg
-            .timer_clock_with_frequency(99, timer::PwmWorkingMode::Increase, 20.kHz())
-            .unwrap();
-        mc.timer0.start(timer_clock_cfg);
-
+        mot_pin_1.set_timestamp(0);
+        mot_pin_2.set_timestamp(0);
         Self {
-            mot_ctrl: mc,
-            mot_p1: mot_ra,
-            mot_p2: mot_rb,
+            mot_p1: mot_pin_1,
+            mot_p2: mot_pin_2,
         }
+    }
+
+    pub fn forward() {
+        todo!();
+    }
+
+    pub fn backwards() {
+        todo!();
+    }
+
+    pub fn coast() {
+        todo!();
     }
 }
 
@@ -89,6 +80,8 @@ fn main() -> ! {
         .timer_clock_with_frequency(99, timer::PwmWorkingMode::Increase, 20.kHz())
         .unwrap();
     mot_ctrl.timer0.start(timer_clock_cfg);
+
+    let mot_r = Motor::new(mot_ra, mot_rb);
 
     let delay = Delay::new();
     loop {
