@@ -31,15 +31,17 @@ impl<'d, PWM: PwmPeripheral> Motor<'d, PWM> {
         }
     }
 
-    pub fn forward() {
-        todo!();
+    pub fn forward(&mut self) {
+        self.mot_p1.set_timestamp(70);
+        self.mot_p2.set_timestamp(0);
     }
 
-    pub fn backwards() {
-        todo!();
+    pub fn backwards(&mut self) {
+        self.mot_p1.set_timestamp(0);
+        self.mot_p2.set_timestamp(70);
     }
 
-    pub fn coast() {
+    pub fn coast(&mut self) {
         todo!();
     }
 }
@@ -64,24 +66,34 @@ fn main() -> ! {
 
     // clock for motors
     let clk_cfg = PeripheralClockConfig::with_frequency(32.MHz()).unwrap();
-    let mut mot_ctrl = McPwm::new(peripherals.MCPWM0, clk_cfg);
+    let mut r_mot_ctrl = McPwm::new(peripherals.MCPWM0, clk_cfg);
+    let mut l_mot_ctrl = McPwm::new(peripherals.MCPWM1, clk_cfg);
 
-    // set the operator for the pwm
-    let mut mot_ra = mot_ctrl
+    // set the operator for the pwm for the right motor
+    let mut mot_ra = r_mot_ctrl
         .operator0
         .with_pin_a(mot_r1, operator::PwmPinConfig::UP_ACTIVE_HIGH);
-
-    let mut mot_rb = mot_ctrl
+    let mut mot_rb = r_mot_ctrl
         .operator1
         .with_pin_a(mot_r2, operator::PwmPinConfig::UP_ACTIVE_HIGH);
+
+    // set the operator for the pwm for the left motor
+    let mut mot_la = l_mot_ctrl
+        .operator0
+        .with_pin_a(mot_l1, operator::PwmPinConfig::UP_ACTIVE_HIGH);
+    let mut mot_lb = l_mot_ctrl
+        .operator1
+        .with_pin_a(mot_l2, operator::PwmPinConfig::UP_ACTIVE_HIGH);
 
     // set timer0 for the pwm & start it
     let timer_clock_cfg = clk_cfg
         .timer_clock_with_frequency(99, timer::PwmWorkingMode::Increase, 20.kHz())
         .unwrap();
-    mot_ctrl.timer0.start(timer_clock_cfg);
+    r_mot_ctrl.timer0.start(timer_clock_cfg);
+    l_mot_ctrl.timer0.start(timer_clock_cfg);
 
     let mot_r = Motor::new(mot_ra, mot_rb);
+    let mot_l = Motor::new(mot_la, mot_lb);
 
     let delay = Delay::new();
     loop {
