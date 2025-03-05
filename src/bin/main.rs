@@ -4,47 +4,13 @@
 use esp_backtrace as _;
 use esp_hal::clock::CpuClock;
 use esp_hal::delay::Delay;
-use esp_hal::gpio::{Level, Output, OutputPin};
+use esp_hal::gpio::{Level, Output};
 use esp_hal::main;
 use esp_hal::mcpwm::*;
-use esp_hal::peripheral::Peripheral;
 use esp_hal::time::RateExtU32;
 use log::info;
 
-extern crate alloc;
-
-pub struct Motor<'d, PWM> {
-    mot_p1: operator::PwmPin<'d, PWM, 0, true>,
-    mot_p2: operator::PwmPin<'d, PWM, 1, true>,
-}
-
-impl<'d, PWM: PwmPeripheral> Motor<'d, PWM> {
-    pub fn new(
-        mut mot_pin_1: operator::PwmPin<'d, PWM, 0, true>,
-        mut mot_pin_2: operator::PwmPin<'d, PWM, 1, true>,
-    ) -> Self {
-        mot_pin_1.set_timestamp(0);
-        mot_pin_2.set_timestamp(0);
-        Self {
-            mot_p1: mot_pin_1,
-            mot_p2: mot_pin_2,
-        }
-    }
-
-    pub fn forward(&mut self) {
-        self.mot_p1.set_timestamp(70);
-        self.mot_p2.set_timestamp(0);
-    }
-
-    pub fn backwards(&mut self) {
-        self.mot_p1.set_timestamp(0);
-        self.mot_p2.set_timestamp(70);
-    }
-
-    pub fn coast(&mut self) {
-        todo!();
-    }
-}
+use mouse::*;
 
 #[main]
 fn main() -> ! {
@@ -54,8 +20,6 @@ fn main() -> ! {
     let peripherals = esp_hal::init(config);
 
     esp_println::logger::init_logger_from_env();
-
-    esp_alloc::heap_allocator!(72 * 1024);
 
     // pins for the motors
     let mot_l1 = Output::new(peripherals.GPIO14, Level::Low);
@@ -70,18 +34,18 @@ fn main() -> ! {
     let mut l_mot_ctrl = McPwm::new(peripherals.MCPWM1, clk_cfg);
 
     // set the operator for the pwm for the right motor
-    let mut mot_ra = r_mot_ctrl
+    let mot_ra = r_mot_ctrl
         .operator0
         .with_pin_a(mot_r1, operator::PwmPinConfig::UP_ACTIVE_HIGH);
-    let mut mot_rb = r_mot_ctrl
+    let mot_rb = r_mot_ctrl
         .operator1
         .with_pin_a(mot_r2, operator::PwmPinConfig::UP_ACTIVE_HIGH);
 
     // set the operator for the pwm for the left motor
-    let mut mot_la = l_mot_ctrl
+    let mot_la = l_mot_ctrl
         .operator0
         .with_pin_a(mot_l1, operator::PwmPinConfig::UP_ACTIVE_HIGH);
-    let mut mot_lb = l_mot_ctrl
+    let mot_lb = l_mot_ctrl
         .operator1
         .with_pin_a(mot_l2, operator::PwmPinConfig::UP_ACTIVE_HIGH);
 
@@ -92,8 +56,11 @@ fn main() -> ! {
     r_mot_ctrl.timer0.start(timer_clock_cfg);
     l_mot_ctrl.timer0.start(timer_clock_cfg);
 
-    let mot_r = Motor::new(mot_ra, mot_rb);
-    let mot_l = Motor::new(mot_la, mot_lb);
+    let mut mot_r = Motor::new(mot_ra, mot_rb);
+    let mut mot_l = Motor::new(mot_la, mot_lb);
+
+    mot_r.forward();
+    mot_l.forward();
 
     let delay = Delay::new();
     loop {
