@@ -31,7 +31,13 @@ impl<'d, PWM: PwmPeripheral> Motor<'d, PWM> {
         self.mot_p2.set_timestamp(0);
     }
 
+    pub fn brake(&mut self) {
+        self.mot_p1.set_timestamp(75);
+        self.mot_p2.set_timestamp(75);
+    }
+
     pub fn coast(&mut self) {
-        todo!();
+        self.mot_p1.set_timestamp(0);
+        self.mot_p2.set_timestamp(0);
     }
 }

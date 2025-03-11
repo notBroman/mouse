@@ -60,7 +60,7 @@ fn main() -> ! {
     let mut mot_l = Motor::new(mot_la, mot_lb);
 
     mot_r.forward();
-    mot_l.forward();
+    mot_l.backwards();
 
     let delay = Delay::new();
     loop {
