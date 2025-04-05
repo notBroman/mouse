@@ -56,8 +56,8 @@ fn main() -> ! {
     r_mot_ctrl.timer0.start(timer_clock_cfg);
     l_mot_ctrl.timer0.start(timer_clock_cfg);
 
-    let mut mot_r = Motor::new(mot_ra, mot_rb);
-    let mut mot_l = Motor::new(mot_la, mot_lb);
+    let mut mot_r = Motor::new(mot_ra, mot_rb, peripherals.GPIO47, peripherals.GPIO33);
+    let mut mot_l = Motor::new(mot_la, mot_lb, peripherals.GPIO21, peripherals.GPIO26);
 
     mot_r.forward();
     mot_l.backwards();
