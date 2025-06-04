@@ -32,8 +32,10 @@ impl<'d> IRSensor<'d> {
 }
 
 pub struct Motor<'d, PWM> {
+    // pin 1 & 2 for the motor
     mot_p1: operator::PwmPin<'d, PWM, 0, true>,
     mot_p2: operator::PwmPin<'d, PWM, 1, true>,
+    // two hall effect sensors to identify turning direction
     hal1_p1: Input<'d>,
     hal2_p1: Input<'d>,
 }
