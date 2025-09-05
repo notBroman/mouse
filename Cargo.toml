@@ -8,20 +8,28 @@ name = "mouse"
 path = "./src/bin/main.rs"
 
 [dependencies]
+bt-hci = 
 critical-section = "1.2.0"
 embedded-sensors = { version = "0.1.1", features = ["mpu6500"]}
-esp-alloc = { version = "0.6.0" }
 esp-backtrace = { version = "0.15.0", features = [
   "esp32s3",
   "exception-handler",
   "panic-handler",
   "println",
 ] }
-esp-hal = { version = "0.23.1", features = ["esp32s3", "unstable"] }
+esp-hal = { version = "1.0.0-rc.0", features = ["esp32s3", "unstable"] }
+esp-alloc = { version = "0.8.0", features = ["esp32s3"] }
+esp-radio = { version = "0.15.0", features = ["esp32s3", "unstable", "ble", "log-04"] }
+esp-preempt = {version = "0.0.1", features = ["esp32s3", "log-04"] }
 esp-println = { version = "0.13.0", features = ["esp32s3", "log"] }
 log = { version = "0.4.21" }
-esp-wifi = { version = "0.12.0", features = ["esp32s3", "wifi", "ble", "log", "esp-alloc"]}
-trouble-host = { version = "0.2.4", features = ["peripheral"]}
+trouble-host = { git = "https://github.com/embassy-rs/trouble", rev = "366ee88", features = [
+    "default-packet-pool-mtu-255",
+    "derive",
+    "scan",
+] }
+static_cell = "2"
+
 [profile.dev]
 # Rust debug is too slow.
 # For debug builds always builds with some optimization

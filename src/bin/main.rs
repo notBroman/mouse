@@ -65,6 +65,7 @@ fn main() -> ! {
     mot_l.backwards();
 
     let delay = Delay::new();
+
     loop {
         info!("Hello world!");
         delay.delay_millis(500);
