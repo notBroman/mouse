@@ -8,6 +8,8 @@ use esp_hal::gpio::{Level, Output};
 use esp_hal::main;
 use esp_hal::mcpwm::*;
 use esp_hal::time::RateExtU32;
+use esp_hal::{rng::Rng, timer::timg::TimerGroup};
+use esp_wifi::{ble::controller::BleConnector, init};
 use log::info;
 
 use mouse::*;

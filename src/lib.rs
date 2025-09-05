@@ -80,3 +80,12 @@ impl<'d, PWM: PwmPeripheral> Motor<'d, PWM> {
         self.mot_p2.set_timestamp(0);
     }
 }
+
+pub struct Mouse<'d, PWM> {
+    right_mot: Motor<'d, PWM>,
+    left_mot: Motor<'d, PWM>,
+}
+
+impl<'d, PWM: PwmPeripheral> Mouse<'d, PWM> {
+    //pub fn new() -> Self {}
+}
