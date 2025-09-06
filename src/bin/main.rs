@@ -1,6 +1,11 @@
 #![no_std]
 #![no_main]
 
+use embassy_executor::Spawner;
+use embassy_futures::{join::join, select::select};
+use embassy_time::Timer;
+
+use esp_alloc;
 use esp_backtrace as _;
 use esp_hal::clock::CpuClock;
 use esp_hal::delay::Delay;
@@ -14,14 +19,18 @@ use log::info;
 
 use mouse::*;
 
-#[main]
-fn main() -> ! {
+#[esp_hal_embassy::main]
+async fn main(_s: Spawner) {
     // generator version: 0.2.2
 
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
 
     esp_println::logger::init_logger_from_env();
+    esp_alloc::heap_allocator!(72 * 1024);
+
+    let systimer = esp_hal::timer::systimer::SystemTimer::new(peripherals.SYSTIMER);
+    esp_hal_embassy::init(systimer.alarm0);
 
     // pins for the motors
     let mot_l1 = Output::new(peripherals.GPIO14, Level::Low);
