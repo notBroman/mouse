@@ -1,6 +1,8 @@
 #![no_std]
 #![no_main]
 
+use core::any::type_name;
+
 use embassy_executor::Spawner;
 use embassy_futures::{join::join, select::select};
 use embassy_time::Timer;
@@ -20,7 +22,7 @@ use log::info;
 use mouse::*;
 
 #[esp_hal_embassy::main]
-async fn main(_s: Spawner) {
+async fn main(spawner: Spawner) {
     // generator version: 0.2.2
 
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
@@ -70,15 +72,31 @@ async fn main(_s: Spawner) {
     let mut mot_r = Motor::new(mot_ra, mot_rb, peripherals.GPIO47, peripherals.GPIO33);
     let mut mot_l = Motor::new(mot_la, mot_lb, peripherals.GPIO21, peripherals.GPIO26);
 
-    mot_r.forward();
-    mot_l.backwards();
-
-    let delay = Delay::new();
-
-    loop {
-        info!("Hello world!");
-        delay.delay_millis(500);
-    }
-
+    let _ = spawner.spawn(run());
+    let _ = spawner.spawn(drive(mot_r, mot_l));
     // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/v0.23.1/examples/src/bin
+}
+
+fn print_type_of<T>(_: &T) {
+    info!("{}", type_name::<T>());
+}
+
+#[embassy_executor::task]
+async fn run() {
+    loop {
+        info!("Hello World!");
+        Timer::after_secs(1).await;
+    }
+}
+
+#[embassy_executor::task]
+async fn drive(
+    mut m1: Motor<'static, esp_hal::peripherals::MCPWM0>,
+    mut m2: Motor<'static, esp_hal::peripherals::MCPWM1>,
+) {
+    m1.forward();
+    m2.backwards();
+    loop {
+        Timer::after_secs(1).await;
+    }
 }
