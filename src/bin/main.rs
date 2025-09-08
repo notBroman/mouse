@@ -137,7 +137,7 @@ struct BatteryService {
 
 pub async fn ble_peripheral_run<C>(controller: C)
 where
-    C: Controller,
+    C: trouble_host::Controller,
 {
     let address = Address::random([0xff, 0x8f, 0x1a, 0x05, 0xe4, 0xff]);
     info!("Our Address: {:?}", address);
