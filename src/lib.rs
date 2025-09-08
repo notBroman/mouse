@@ -1,9 +1,10 @@
 #![no_std]
 
 use esp_backtrace as _;
-use esp_hal::gpio::{Input, InputPin, Level, Output, OutputPin, Pull};
+use esp_hal::gpio::interconnect::{PeripheralInput, PeripheralOutput};
+use esp_hal::gpio::*;
 use esp_hal::mcpwm::*;
-use esp_hal::peripheral::Peripheral;
+use esp_hal::peripherals::Peripherals;
 
 pub struct IRSensor<'d> {
     trigger: Output<'d>,
@@ -15,18 +16,18 @@ pub struct IRSensor<'d> {
 
 impl<'d> IRSensor<'d> {
     pub fn new(
-        mut trig_pin: impl Peripheral<P = impl OutputPin> + 'd,
-        mut lf_pin: impl Peripheral<P = impl InputPin> + 'd,
-        mut ls_pin: impl Peripheral<P = impl InputPin> + 'd,
-        mut rf_pin: impl Peripheral<P = impl InputPin> + 'd,
-        mut rs_pin: impl Peripheral<P = impl InputPin> + 'd,
+        mut trig_pin: impl PeripheralOutput<'d> + OutputPin + 'd,
+        mut lf_pin: impl PeripheralInput<'d> + InputPin + 'd,
+        mut ls_pin: impl PeripheralInput<'d> + InputPin + 'd,
+        mut rf_pin: impl PeripheralInput<'d> + InputPin + 'd,
+        mut rs_pin: impl PeripheralInput<'d> + InputPin + 'd,
     ) -> Self {
         Self {
-            trigger: Output::new(trig_pin, Level::Low),
-            left_side: Input::new(ls_pin, Pull::Down),
-            left_front: Input::new(lf_pin, Pull::Down),
-            right_side: Input::new(rs_pin, Pull::Down),
-            right_front: Input::new(rf_pin, Pull::Down),
+            trigger: Output::new(trig_pin, Level::Low, OutputConfig::default()),
+            left_side: Input::new(ls_pin, InputConfig::default().with_pull(Pull::Down)),
+            left_front: Input::new(lf_pin, InputConfig::default().with_pull(Pull::Down)),
+            right_side: Input::new(rs_pin, InputConfig::default().with_pull(Pull::Down)),
+            right_front: Input::new(rf_pin, InputConfig::default().with_pull(Pull::Down)),
         }
     }
 }
@@ -44,13 +45,13 @@ impl<'d, PWM: PwmPeripheral> Motor<'d, PWM> {
     pub fn new(
         mut mot_pin_1: operator::PwmPin<'d, PWM, 0, true>,
         mut mot_pin_2: operator::PwmPin<'d, PWM, 1, true>,
-        mut hal1_mot1_pin: impl Peripheral<P = impl InputPin> + 'd,
-        mut hal2_mot1_pin: impl Peripheral<P = impl InputPin> + 'd,
+        mut hal1_mot1_pin: impl PeripheralInput<'d> + InputPin + 'd,
+        mut hal2_mot1_pin: impl PeripheralInput<'d> + InputPin + 'd,
     ) -> Self {
         mot_pin_1.set_timestamp(0);
         mot_pin_2.set_timestamp(0);
-        let hal1_mot1 = Input::new(hal1_mot1_pin, Pull::None);
-        let hal2_mot1 = Input::new(hal2_mot1_pin, Pull::None);
+        let hal1_mot1 = Input::new(hal1_mot1_pin, InputConfig::default().with_pull(Pull::None));
+        let hal2_mot1 = Input::new(hal2_mot1_pin, InputConfig::default().with_pull(Pull::None));
 
         Self {
             mot_p1: mot_pin_1,

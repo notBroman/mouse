@@ -8,7 +8,6 @@ name = "mouse"
 path = "./src/bin/main.rs"
 
 [dependencies]
-bt-hci = "0.4.0"
 embedded-sensors = { version = "0.1.1", features = ["mpu6500"]}
 embedded-io = "0.6.1"
 embedded-io-async = "0.6.1"
@@ -19,14 +18,12 @@ esp-backtrace = { version = "0.15.0", features = [
   "panic-handler",
   "println",
 ] }
-esp-hal = { version = "0.23.1", features = ["esp32s3", "unstable"] }
+esp-hal = { version = "1.0.0-rc.0", features = ["esp32s3", "unstable"] }
 esp-println = { version = "0.13.0", features = ["esp32s3", "log"] }
-esp-wifi = { version = "0.12.0", default-features = false, features = [
+esp-wifi = { version = "0.15.0", default-features = false, features = [
   "ble",
   "esp-alloc",
   "esp32s3",
-  "log",
-  "utils",
 ] }
 heapless = { version = "0.8.0", default-features = false }
 log = { version = "0.4.21" }
@@ -42,7 +39,6 @@ smoltcp = { version = "0.12.0", default-features = false, features = [
   "socket-tcp",
   "socket-udp",
 ] }
-# for more networking protocol support see https://crates.io/crates/edge-net
 trouble-host-macros = {version = "0.2.0"}
 trouble-host = { git = "https://github.com/embassy-rs/trouble", rev = "366ee88", features = [
     "default-packet-pool-mtu-255",

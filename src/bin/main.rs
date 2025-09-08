@@ -3,25 +3,23 @@
 
 use core::any::type_name;
 
-use bt_hci::controller::ExternalController;
 use embassy_executor::Spawner;
 use embassy_futures::{join::join, select::select};
 use embassy_time::Timer;
 
 use static_cell::StaticCell;
+use trouble_host::prelude::ExternalController;
 use trouble_host::prelude::*;
-use trouble_host::Controller;
 
 use esp_alloc;
 use esp_backtrace as _;
 use esp_hal::clock::CpuClock;
-use esp_hal::delay::Delay;
-use esp_hal::gpio::{Level, Output};
-use esp_hal::main;
+use esp_hal::gpio::{Level, Output, OutputConfig};
 use esp_hal::mcpwm::*;
-use esp_hal::time::RateExtU32;
+use esp_hal::time::Rate;
 use esp_hal::{rng::Rng, timer::timg::TimerGroup};
-use esp_wifi::{ble::controller::BleConnector, init};
+use esp_wifi::ble::controller::BleConnector;
+use esp_wifi::EspWifiController;
 use log::{info, warn};
 
 use mouse::*;
@@ -37,28 +35,25 @@ async fn main(spawner: Spawner) {
     esp_alloc::heap_allocator!(72 * 1024);
 
     let systimer = esp_hal::timer::systimer::SystemTimer::new(peripherals.SYSTIMER);
-    esp_hal_embassy::init(systimer.alarm0);
+    esp_hal_embassy::init(systimer.alarm0.into());
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
 
     static RADIO: StaticCell<esp_wifi::EspWifiController<'static>> = StaticCell::new();
-    let radio_tmp = init(
-        timg0.timer0,
-        Rng::new(peripherals.RNG),
-        peripherals.RADIO_CLK,
-    )
-    .expect("Error getting wifi");
-    let radio = RADIO.init(radio_tmp);
+    let radio = RADIO.init(
+        esp_wifi::init(timg0.timer0, Rng::new(peripherals.RNG))
+            .expect("Radio could not be initialized"),
+    );
 
     // pins for the motors
-    let mot_l1 = Output::new(peripherals.GPIO14, Level::Low);
-    let mot_l2 = Output::new(peripherals.GPIO15, Level::Low);
+    let mot_l1 = Output::new(peripherals.GPIO14, Level::Low, OutputConfig::default());
+    let mot_l2 = Output::new(peripherals.GPIO15, Level::Low, OutputConfig::default());
 
-    let mot_r1 = Output::new(peripherals.GPIO16, Level::Low);
-    let mot_r2 = Output::new(peripherals.GPIO17, Level::Low);
+    let mot_r1 = Output::new(peripherals.GPIO16, Level::Low, OutputConfig::default());
+    let mot_r2 = Output::new(peripherals.GPIO17, Level::Low, OutputConfig::default());
 
     // clock for motors
-    let clk_cfg = PeripheralClockConfig::with_frequency(32.MHz()).unwrap();
+    let clk_cfg = PeripheralClockConfig::with_frequency(Rate::from_mhz(32)).unwrap();
     let mut r_mot_ctrl = McPwm::new(peripherals.MCPWM0, clk_cfg);
     let mut l_mot_ctrl = McPwm::new(peripherals.MCPWM1, clk_cfg);
 
@@ -80,7 +75,7 @@ async fn main(spawner: Spawner) {
 
     // set timer0 for the pwm & start it
     let timer_clock_cfg = clk_cfg
-        .timer_clock_with_frequency(99, timer::PwmWorkingMode::Increase, 20.kHz())
+        .timer_clock_with_frequency(99, timer::PwmWorkingMode::Increase, Rate::from_khz(20))
         .unwrap();
     r_mot_ctrl.timer0.start(timer_clock_cfg);
     l_mot_ctrl.timer0.start(timer_clock_cfg);
@@ -102,8 +97,8 @@ fn print_type_of<T>(_: &T) {
 
 #[embassy_executor::task]
 async fn drive(
-    mut m1: Motor<'static, esp_hal::peripherals::MCPWM0>,
-    mut m2: Motor<'static, esp_hal::peripherals::MCPWM1>,
+    mut m1: Motor<'static, esp_hal::peripherals::MCPWM0<'static>>,
+    mut m2: Motor<'static, esp_hal::peripherals::MCPWM1<'static>>,
 ) {
     m1.forward();
     m2.backwards();
@@ -137,7 +132,7 @@ struct BatteryService {
 
 pub async fn ble_peripheral_run<C>(controller: C)
 where
-    C: trouble_host::Controller,
+    C: Controller,
 {
     let address = Address::random([0xff, 0x8f, 0x1a, 0x05, 0xe4, 0xff]);
     info!("Our Address: {:?}", address);
