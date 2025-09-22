@@ -1,36 +1,56 @@
 #![no_std]
 
 use esp_backtrace as _;
-use esp_hal::gpio::{Input, InputPin, Pull};
+use esp_hal::gpio::{Level, Output, OutputConfig, OutputPin};
 use esp_hal::mcpwm::*;
-use esp_hal::peripheral::Peripheral;
+use esp_hal::time::Rate;
 
-pub struct Motor<'d, PWM> {
+pub struct Motor<'d, PWM>
+where
+    PWM: PwmPeripheral + 'd,
+{
     // pin 1 & 2 for the motor
     mot_p1: operator::PwmPin<'d, PWM, 0, true>,
     mot_p2: operator::PwmPin<'d, PWM, 1, true>,
-    // two hall effect sensors to identify turning direction
-    hal1_p1: Input<'d>,
-    hal2_p1: Input<'d>,
 }
 
-impl<'d, PWM: PwmPeripheral> Motor<'d, PWM> {
+impl<'d, PWM> Motor<'d, PWM>
+where
+    PWM: PwmPeripheral + 'd,
+{
     pub fn new(
-        mut mot_pin_1: operator::PwmPin<'d, PWM, 0, true>,
-        mut mot_pin_2: operator::PwmPin<'d, PWM, 1, true>,
-        mut hal1_mot1_pin: impl Peripheral<P = impl InputPin> + 'd,
-        mut hal2_mot1_pin: impl Peripheral<P = impl InputPin> + 'd,
+        mut mot_pin_1: impl OutputPin + 'd,
+        mut mot_pin_2: impl OutputPin + 'd,
+        mut mcpwm_peripheral: PWM,
     ) -> Self {
-        mot_pin_1.set_timestamp(0);
-        mot_pin_2.set_timestamp(0);
-        let hal1_mot1 = Input::new(hal1_mot1_pin, Pull::None);
-        let hal2_mot1 = Input::new(hal2_mot1_pin, Pull::None);
+        // create pins for motor
+        let mot_p1 = Output::new(mot_pin_1, Level::Low, OutputConfig::default());
+        let mot_p2 = Output::new(mot_pin_2, Level::Low, OutputConfig::default());
+
+        // cofigure the clock and create mcpwm from peripheral
+        let clk_cfg = PeripheralClockConfig::with_frequency(Rate::from_mhz(32)).unwrap();
+        let mut mot_ctrl = McPwm::new(mcpwm_peripheral, clk_cfg);
+
+        // set the operators for the motor
+        let mut mot_a = mot_ctrl
+            .operator0
+            .with_pin_a(mot_p1, operator::PwmPinConfig::UP_ACTIVE_HIGH);
+        let mut mot_b = mot_ctrl
+            .operator1
+            .with_pin_a(mot_p2, operator::PwmPinConfig::UP_ACTIVE_HIGH);
+
+        // set timer0 for the pwm & start it
+        let timer_clock_cfg = clk_cfg
+            .timer_clock_with_frequency(99, timer::PwmWorkingMode::Increase, Rate::from_khz(20))
+            .unwrap();
+        mot_ctrl.timer0.start(timer_clock_cfg);
+
+        mot_a.set_timestamp(0);
+        mot_b.set_timestamp(0);
 
         Self {
-            mot_p1: mot_pin_1,
-            mot_p2: mot_pin_2,
-            hal1_p1: hal1_mot1,
-            hal2_p1: hal2_mot1,
+            mot_p1: mot_a,
+            mot_p2: mot_b,
         }
     }
 

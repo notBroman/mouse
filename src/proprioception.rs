@@ -1,2 +1,2 @@
 pub mod imu;
-mod register;
+pub mod mot_sens;

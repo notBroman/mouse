@@ -2,8 +2,7 @@
 
 use esp_hal::gpio::OutputPin;
 use esp_hal::i2c::master::{Config, Error, I2c, Instance, Operation};
-use esp_hal::peripheral::Peripheral;
-use esp_hal::time::RateExtU32;
+use esp_hal::time::Rate;
 use esp_hal::DriverMode;
 use esp_hal::{Async, Blocking};
 use log::info;
@@ -126,11 +125,11 @@ pub struct IMU<'d, Dm: DriverMode> {
 
 impl<'d> IMU<'d, Async> {
     pub fn new(
-        sda: impl Peripheral<P = impl OutputPin> + 'd,
-        scl: impl Peripheral<P = impl OutputPin> + 'd,
-        i2c_peripheral: impl Peripheral<P = impl Instance> + 'd,
+        sda: impl OutputPin + 'd,
+        scl: impl OutputPin + 'd,
+        i2c_peripheral: impl Instance + 'd,
     ) -> Self {
-        let config = Config::default().with_frequency(400.kHz());
+        let config = Config::default().with_frequency(Rate::from_khz(400));
         let i2c_master = I2c::new(i2c_peripheral, config)
             .expect("Could not create i2c")
             .with_sda(sda)
@@ -164,7 +163,7 @@ impl<'d> IMU<'d, Async> {
     }
 
     async fn read_reg(&mut self, addr: u8, reg: Register, buf: &mut [u8]) -> Result<(), Error> {
-        match self.i2c.write_read(addr, &[reg as u8], buf).await {
+        match self.i2c.write_read_async(addr, &[reg as u8], buf).await {
             Ok(()) => Ok(()),
             Err(e) => Err(e),
         }
@@ -175,7 +174,7 @@ impl<'d> IMU<'d, Async> {
         for addr in 0..256 {
             match self
                 .i2c
-                .transaction(
+                .transaction_async(
                     addr,
                     &mut [
                         Operation::Write(&[Register::WHO_AM_I as u8]),

@@ -14,24 +14,17 @@ use esp_hal::delay::Delay;
 use esp_hal::gpio::{Level, Output};
 use esp_hal::main;
 use esp_hal::mcpwm::*;
-use esp_hal::time::RateExtU32;
-use esp_hal::Async;
 use esp_hal::{rng::Rng, timer::timg::TimerGroup};
 use log::info;
-
-use esp_hal::i2c::master::{Config, I2c, Operation};
 
 mod actuator;
 use actuator::motor::Motor;
 
 mod exterioception;
 mod proprioception;
-use proprioception::imu::IMU;
 
 #[esp_hal_embassy::main]
 async fn main(spawner: Spawner) {
-    // generator version: 0.2.2
-
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
 
@@ -41,43 +34,9 @@ async fn main(spawner: Spawner) {
     let systimer = esp_hal::timer::systimer::SystemTimer::new(peripherals.SYSTIMER);
     esp_hal_embassy::init(systimer.alarm0);
 
-    // pins for the motors
-    let mot_l1 = Output::new(peripherals.GPIO14, Level::Low);
-    let mot_l2 = Output::new(peripherals.GPIO15, Level::Low);
-
-    let mot_r1 = Output::new(peripherals.GPIO16, Level::Low);
-    let mot_r2 = Output::new(peripherals.GPIO17, Level::Low);
-
-    // clock for motors
-    let clk_cfg = PeripheralClockConfig::with_frequency(32.MHz()).unwrap();
-    let mut r_mot_ctrl = McPwm::new(peripherals.MCPWM0, clk_cfg);
-    let mut l_mot_ctrl = McPwm::new(peripherals.MCPWM1, clk_cfg);
-
-    // set the operator for the pwm for the right motor
-    let mot_ra = r_mot_ctrl
-        .operator0
-        .with_pin_a(mot_r1, operator::PwmPinConfig::UP_ACTIVE_HIGH);
-    let mot_rb = r_mot_ctrl
-        .operator1
-        .with_pin_a(mot_r2, operator::PwmPinConfig::UP_ACTIVE_HIGH);
-
-    // set the operator for the pwm for the left motor
-    let mot_la = l_mot_ctrl
-        .operator0
-        .with_pin_a(mot_l1, operator::PwmPinConfig::UP_ACTIVE_HIGH);
-    let mot_lb = l_mot_ctrl
-        .operator1
-        .with_pin_a(mot_l2, operator::PwmPinConfig::UP_ACTIVE_HIGH);
-
-    // set timer0 for the pwm & start it
-    let timer_clock_cfg = clk_cfg
-        .timer_clock_with_frequency(99, timer::PwmWorkingMode::Increase, 20.kHz())
-        .unwrap();
-    r_mot_ctrl.timer0.start(timer_clock_cfg);
-    l_mot_ctrl.timer0.start(timer_clock_cfg);
-
-    let mut mot_r = Motor::new(mot_ra, mot_rb, peripherals.GPIO47, peripherals.GPIO33);
-    let mut mot_l = Motor::new(mot_la, mot_lb, peripherals.GPIO21, peripherals.GPIO26);
+    // create motors from pins
+    let mut mot_r = Motor::new(peripherals.GPIO16, peripherals.GPIO17, peripherals.MCPWM0);
+    let mut mot_l = Motor::new(peripherals.GPIO14, peripherals.GPIO14, peripherals.MCPWM1);
 
     //let _ = spawner.spawn(run());
     let _ = spawner.spawn(drive(mot_r, mot_l));
@@ -98,8 +57,8 @@ async fn run() {
 
 #[embassy_executor::task]
 async fn drive(
-    mut m1: Motor<'static, esp_hal::peripherals::MCPWM0>,
-    mut m2: Motor<'static, esp_hal::peripherals::MCPWM1>,
+    mut m1: Motor<'static, esp_hal::peripherals::MCPWM0<'static>>,
+    mut m2: Motor<'static, esp_hal::peripherals::MCPWM1<'static>>,
 ) {
     m1.forward();
     m2.backwards();
