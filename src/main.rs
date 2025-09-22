@@ -15,11 +15,18 @@ use esp_hal::gpio::{Level, Output};
 use esp_hal::main;
 use esp_hal::mcpwm::*;
 use esp_hal::time::RateExtU32;
+use esp_hal::Async;
 use esp_hal::{rng::Rng, timer::timg::TimerGroup};
-use esp_wifi::{ble::controller::BleConnector, init};
 use log::info;
 
-use mouse::*;
+use esp_hal::i2c::master::{Config, I2c, Operation};
+
+mod actuator;
+use actuator::motor::Motor;
+
+mod exterioception;
+mod proprioception;
+use proprioception::imu::IMU;
 
 #[esp_hal_embassy::main]
 async fn main(spawner: Spawner) {
@@ -72,7 +79,7 @@ async fn main(spawner: Spawner) {
     let mut mot_r = Motor::new(mot_ra, mot_rb, peripherals.GPIO47, peripherals.GPIO33);
     let mut mot_l = Motor::new(mot_la, mot_lb, peripherals.GPIO21, peripherals.GPIO26);
 
-    let _ = spawner.spawn(run());
+    //let _ = spawner.spawn(run());
     let _ = spawner.spawn(drive(mot_r, mot_l));
     // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/v0.23.1/examples/src/bin
 }

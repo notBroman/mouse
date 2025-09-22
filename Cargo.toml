@@ -5,7 +5,7 @@ version = "0.1.0"
 
 [[bin]]
 name = "mouse"
-path = "./src/bin/main.rs"
+path = "./src/main.rs"
 
 [dependencies]
 embedded-sensors = { version = "0.1.1", features = ["mpu6500"]}
